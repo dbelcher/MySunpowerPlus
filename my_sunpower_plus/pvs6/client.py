@@ -2,7 +2,9 @@ import json
 import re
 from datetime import datetime
 
+import pytz
 import urllib3
+from dateutil import tz
 
 from my_sunpower_plus.errors import SerializationError, ValidationError
 from my_sunpower_plus.logger import get_logger
@@ -38,29 +40,29 @@ class PVS6Client:
             resp.data.decode('utf-8')
         )
 
-        devices = []
+        valid_devices = []
         for device in body['devices']:
             try:
-                self.validate_device(device)
-                devices.append(device)
+                valid_device = self.validate_device(device)
+                valid_devices.append(valid_device)
             except:
                 self.logger.exception('Skipping invalid device.')
 
-        return devices
+        return valid_devices
 
     @staticmethod
-    def validate_device(device: dict) -> None:
+    def validate_device(device: dict) -> dict:
         if not device:
             raise ValidationError('Device is not defined!')
 
-        keys = device.keys()
-        for key in keys:
+        valid_device = {}
+        for key in device.keys():
             value = device[key]
 
             match key:
                 case 'CURTIME' | 'DATATIME':
                     try:
-                        device[key] = PVS6Client.reformat_datetime(value)
+                        valid_device[key] = PVS6Client.reformat_datetime(value)
                     except:
                         raise ValidationError(f'Invalid value \'{value}\' for \'{key}\'. Expected datetime.')
 
@@ -68,7 +70,7 @@ class PVS6Client:
                      'dl_scan_time' | 'dl_flash_avail' | 'dl_skipped_scans' | 'dl_untransmitted' | \
                      'ct_scl_fctr':
                     try:
-                        device[key] = int(value)
+                        valid_device[key] = int(value)
                     except:
                         raise ValidationError(f'Invalid value \'{value}\' for \'{key}\'. Expected int.')
 
@@ -78,12 +80,14 @@ class PVS6Client:
                      'v1n_v' | 'v2n_v' | 'v12_v' | 'p1_kw' | 'p2_kw' | 'neg_ltea_3phsum_kwh' | \
                      'pos_ltea_3phsum_kwh' | 'net_ltea_3phsum_kwh':
                     try:
-                        device[key] = float(value)
+                        valid_device[key] = float(value)
                     except:
                         raise ValidationError(f'Invalid value \'{value}\' for \'{key}\'. Expected float.')
 
                 case _:
-                    pass
+                    valid_device[key] = value
+
+        return valid_device
 
     @staticmethod
     def reformat_datetime(value: str) -> str:
@@ -91,9 +95,8 @@ class PVS6Client:
         if not match:
             raise SerializationError(f'Invalid date/time value \'{value}\'')
 
-        utc_timestamp = float(datetime(
+        return datetime(
             int(match.group('year')), int(match.group('month')), int(match.group('day')),
             int(match.group('hour')), int(match.group('minute')), int(match.group('second')),
-            tzinfo=datetime.utcnow().astimezone().tzinfo
-        ).strftime('%s'))
-        return datetime.fromtimestamp(utc_timestamp).isoformat()
+            tzinfo=pytz.UTC
+        ).astimezone(tz.tzlocal()).isoformat()
