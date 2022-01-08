@@ -1,0 +1,2 @@
+urllib3~=1.26.7
+elasticsearch~=7.16

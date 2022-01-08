@@ -1,0 +1,7 @@
+{
+  "PVS6": {
+    "HOST": "6e54845c-bf59-4f24-be57-b3e9bb20ac49.mock.pstmn.io",
+    "URL": "/cgi-bin/dl_cgi",
+    "SSL": true
+  }
+}
