@@ -13,11 +13,15 @@ class ESClient:
 
     def index_devices(self, devices: list) -> None:
         documents = []
-        for device in devices:
-            documents.append(
-                self._create_device_document(device)
-            )
-        self._write_documents(documents)
+
+        try:
+            for device in devices:
+                documents.append(
+                    self._create_device_document(device)
+                )
+            self._write_documents(documents)
+        except:
+            self.logger.error('Failed to index documents.')
 
     def _write_documents(self, documents: list) -> None:
         resp = helpers.bulk(self.client, documents, True)

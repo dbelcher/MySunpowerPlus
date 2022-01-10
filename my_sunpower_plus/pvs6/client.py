@@ -24,29 +24,33 @@ class PVS6Client:
         self.logger = get_logger()
 
     def get_device_list(self) -> list:
-        http = 'http' if not self.config.get_ssl else 'https'
-        host = self.config.get_host.strip('/')
-        url = self.config.get_url.strip('/')
-
-        full_url = f'{http}://{host}/{url}?Command=DeviceList'
-        self.logger.info(f'GET {full_url}')
-        resp = client.request('GET', full_url)
-        self.logger.info(f'RESPONSE {resp.status} -> {resp.data}')
-
-        if resp.status != 200:
-            raise IOError(f'PVS6 Response Failure')
-
-        body = json.loads(
-            resp.data.decode('utf-8')
-        )
-
         valid_devices = []
-        for device in body['devices']:
-            try:
-                valid_device = self.validate_device(device)
-                valid_devices.append(valid_device)
-            except:
-                self.logger.exception('Skipping invalid device.')
+
+        try:
+            http = 'http' if not self.config.get_ssl else 'https'
+            host = self.config.get_host.strip('/')
+            url = self.config.get_url.strip('/')
+
+            full_url = f'{http}://{host}/{url}?Command=DeviceList'
+            self.logger.info(f'GET {full_url}')
+            resp = client.request('GET', full_url)
+            self.logger.info(f'RESPONSE {resp.status} -> {resp.data}')
+
+            if resp.status != 200:
+                raise IOError(f'PVS6 Response Failure')
+
+            body = json.loads(
+                resp.data.decode('utf-8')
+            )
+
+            for device in body['devices']:
+                try:
+                    valid_device = self.validate_device(device)
+                    valid_devices.append(valid_device)
+                except:
+                    self.logger.exception('Skipping invalid device.')
+        except:
+            self.logger.error('Failed to retrieve device list.')
 
         return valid_devices
 
