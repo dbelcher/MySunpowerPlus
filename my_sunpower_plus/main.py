@@ -19,6 +19,6 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    app.start(True)
+    app.start()
     while True:
         time.sleep(1)
